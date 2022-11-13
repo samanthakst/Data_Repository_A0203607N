@@ -1,0 +1,107 @@
+---
+title: "PL4246 Project"
+output: html_document
+date: '2022-11-04'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r load-libraries}
+library(igraph)
+library(tidyverse)
+library(qgraph)
+```
+```{r}
+# Task oriented coping 
+task_data <- read.csv("task_data.csv")
+task_cor_matrix <- cor_auto(task_data)
+task_network <- qgraph(task_cor_matrix, graph = 'pcor', 
+                     threshold = 'sig', sampleSize = 79, 
+                     layout = 'spring') 
+
+task_g <- as.igraph(task_network)
+E(task_g)$weight <- abs(E(task_g)$weight) # make all the weights positive 
+summary(task_g)
+
+closeness(graph = task_g, normalized = T)
+degree(graph = task_g)
+
+## Louvain Modularity Optimization Method
+set.seed(7)
+task_louvain <- cluster_louvain(task_g, weights = E(task_g)$weight)
+
+task_louvain_membership <- data.frame(node = 1:gorder(task_g), community = task_louvain$membership) # Create data frame containing node and corresponding membership
+
+table(task_louvain_membership$community)
+
+modularity(task_louvain)
+
+```
+```{r}
+# Emotion oriented coping
+emo_data <- read.csv("emotion_data.csv")
+emo_cor_matrix <- cor_auto(emo_data)
+emo_network <- qgraph(emo_cor_matrix, graph = 'pcor', 
+                     threshold = 'sig', sampleSize = 79, 
+                     layout = 'spring') 
+
+emo_g <- as.igraph(emo_network)
+E(emo_g)$weight <- abs(E(emo_g)$weight) # make all the weights positive 
+summary(emo_g)
+
+closeness(graph = emo_g, normalized = T)
+degree(graph = emo_g)
+```
+
+```{r}
+## Louvain Modularity Optimization Method
+set.seed(7)
+emotion_louvain <- cluster_louvain(emo_g, weights = E(emo_g)$weight)
+
+emo_louvain_membership <- data.frame(node = 1:gorder(emo_g), community = emotion_louvain$membership) # Create data frame containing node and corresponding membership
+
+table(emo_louvain_membership$community)
+
+modularity(emotion_louvain)
+```
+
+```{r}
+# Avoidance coping
+avoid_data <- read.csv("avoidance_data.csv")
+avoid_cor_matrix <- cor_auto(avoid_data)
+avoid_network <- qgraph(avoid_cor_matrix, graph = 'pcor', 
+                     threshold = 'sig', sampleSize = 79, 
+                     layout = 'spring') 
+
+avoid_g <- as.igraph(avoid_network)
+E(avoid_g)$weight <- abs(E(avoid_g)$weight) # make all the weights positive 
+summary(avoid_g)
+
+closeness(graph = avoid_g, normalized = T)
+degree(graph = avoid_g)
+
+```
+# Community detection
+```{r}
+
+## Louvain Modularity Optimization Method
+set.seed(32)
+avoid_louvain <- cluster_louvain(avoid_g, weights = E(avoid_g)$weight)
+
+avoid_louvain_membership <- data.frame(node = 1:gorder(avoid_g), community = avoid_louvain$membership) # Create dataframe containing node and corresponding membership
+
+table(avoid_louvain_membership$community)
+
+modularity(avoid_louvain) # Modularity
+
+# visualisation
+par(mar=c(0,0,0,0)+.1) 
+V(avoid_g)$community <- avoid_louvain$membership # assign community membership as a node attribute
+plot(avoid_g, vertex.color=V(avoid_g)$community, vertex.label = NA, vertex.size = 7, vertex.frame.color = 'white',layout = layout_with_lgl)
+```
+
+
