@@ -1,0 +1,104 @@
+---
+title: "PL4246 Data Repository"
+output: html_document
+date: '2022-11-06'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r load-libraries}
+library(igraph)
+library(tidyverse)
+library(qgraph)
+```
+
+# Generate coping network
+
+```{r}
+data <- read.csv("coping_data.csv") 
+cor_matrix <- cor_auto(data)
+network <- qgraph(cor_matrix, graph = 'pcor',sampleSize = 79,threshold = 'sig',
+                  layout = 'spring') 
+
+# Convert qgraph object to igraph object
+network_g <- as.igraph(network)
+# Make weights positive
+E(network_g)$weight <- abs(E(network_g)$weight)
+
+# Summary of network
+summary(network_g)
+
+# Assign nodes to their respective coping styles
+network_g <- set.vertex.attribute(network_g, 'style', index = V(network_g)[c(1, 2, 6, 10, 15, 21, 24, 26, 27, 36, 39, 41, 42, 43, 46, 47)], value = "Task")
+network_g <- set.vertex.attribute(network_g, 'style', index = V(network_g)[c(3, 4, 9, 11, 12, 18, 20, 23, 29, 31, 32, 35, 37, 40, 44, 48)], value = "Avoidance")
+network_g <- set.vertex.attribute(network_g, 'style', index = V(network_g)[c(5, 7, 8, 13, 14, 16, 17, 19, 22, 25, 28, 30, 33, 34, 38, 45)], value = "Emotion")
+
+# Assign colour to each coping style
+network_g <- set.vertex.attribute(network_g, 'color', index = V(network_g)[V(network_g)$style == "Task"], value = 'green')
+network_g <- set.vertex.attribute(network_g, 'color', index = V(network_g)[V(network_g)$style == "Avoidance"], value = 'red')
+network_g <- set.vertex.attribute(network_g, 'color', index = V(network_g)[V(network_g)$style == "Emotion"], value = 'blue')
+
+# Plot network
+par(mar=c(0,0,0,0)+.1) 
+plot(network_g, vertex.color=V(network_g)$color, vertex.size=22)
+```
+
+# Community Detection
+
+```{r}
+## Louvain Modularity Optimization Method
+set.seed(7) 
+network_louvain <- cluster_louvain(network_g, weights = E(network_g)$weight)
+
+# read dataset containing information about name and coping style of each node
+coping_style <- read.csv("coping_styles_nodes.csv") 
+
+# Create data frame containing node, corresponding community membership, and coping style
+network_louvain_membership <- data.frame(node = 1:gorder(network_g), community = network_louvain$membership, style = coping_style$Style)
+
+# Display previously created data frame
+table(network_louvain_membership$community)
+print(network_louvain_membership)
+
+# Obtain modularity score
+modularity(network_louvain)
+
+# Assign community membership as a node attribute
+V(network_g)$community <- network_louvain$membership 
+
+# Visualise network
+par(mar=c(0,0,0,0)+.1) 
+plot(network_g, vertex.color=V(network_g)$community, vertex.size = 20, vertex.frame.color = 'white',layout = layout_with_lgl) 
+```
+
+# Replication of Network Analysis
+
+```{r}
+# First replication
+set.seed(10)
+network_louvain <- cluster_louvain(network_g, weights = E(network_g)$weight)
+
+# Create data frame containing node, corresponding community membership, and coping style
+network_louvain_membership <- data.frame(node = 1:gorder(network_g), community = network_louvain$membership, style = coping_style$Style) 
+
+table(network_louvain_membership$community)
+
+# Modularity
+modularity(network_louvain)
+
+# Second replication
+set.seed(28)
+network_louvain <- cluster_louvain(network_g, weights = E(network_g)$weight)
+
+# Create data frame containing node, corresponding community membership, and coping style)
+network_louvain_membership <- data.frame(node = 1:gorder(network_g), community = network_louvain$membership, style = coping_style$Style)
+
+table(network_louvain_membership$community)
+
+# Modularity
+modularity(network_louvain)
+```
